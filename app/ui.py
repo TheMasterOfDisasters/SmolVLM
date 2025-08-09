@@ -15,7 +15,6 @@ class GradioUI:
             return
 
         if not image:
-            self.task_id_counter += 1
             self.chat_history.append({"role": "user", "content": prompt})
             yield self.chat_history, gr.update(value="")
             self.chat_history.append({"role": "assistant", "content": "❗ Please upload an image first."})
@@ -51,23 +50,23 @@ class GradioUI:
 
     def start(self):
         with gr.Blocks(
-                theme=gr.themes.Soft(primary_hue="cyan", secondary_hue="pink"),
+                theme=gr.themes.Soft(primary_hue="cyan", secondary_hue="pink", font=[gr.themes.GoogleFont("Roboto"), gr.themes.GoogleFont("Roboto Mono")]),
                 css="""
                 html, body { height: 100%; margin: 0; padding: 0; }
                 .gradio-container { 
                     width: 80vw !important; 
-                    height: 80vh !important; 
                     min-width: 80vw !important;
-                    min-height: 80vh !important;
                     max-width: 80vw !important;
-                    max-height: 80vh !important;
+                    min-height: 100dvh !important;
+                    height: auto !important;
+                    max-height: none !important;
                     margin: 0 auto; 
                     display: flex; 
                     flex-direction: column; 
                     justify-content: flex-start;
                 }
-                /* Remove ALL extra space above header */
-                .gradio-container > *:first-child { margin-top: 0 !important; padding-top: 80 !important; }
+                /* Remove all extra space above header */
+                .gradio-container > *:first-child { margin-top: 0 !important; padding-top: 0 !important; }
                 body > div:first-child { margin-top: 0 !important; padding-top: 0 !important; }
 
                 /* Chat layout & bubbles */
@@ -126,16 +125,31 @@ class GradioUI:
                 #chatbot .wrap { gap: 8px; }
                 #chatbot .overflow-y-auto { scroll-behavior: smooth; }
                 .gradio-container .gr-text-input textarea { border-radius: 14px !important; }
+
+                /* Layout fixes: let the middle row flex and shrink */
+                #main-row {
+                    flex: 1 1 auto;
+                    min-height: 0;
+                    display: flex;
+                }
+                #main-row > * {
+                    height: 100% !important;
+                    min-height: 0;
+                }
+                #chatbot,
+                #chatbot .overflow-y-auto {
+                    height: 100% !important;
+                    min-height: 0 !important;
+                }
             """
         ) as demo:
 
             gr.Markdown("<h1 style='color:white; text-align:center; margin:0;'>💬 SmolVLM Chat</h1>")
 
-            with gr.Row():
+            with gr.Row(elem_id="main-row"):
                 chatbot = gr.Chatbot(
                     value=self.chat_history,
                     elem_id="chatbot",
-                    height="60vh",
                     scale=1,
                     type="messages",
                     render_markdown=True,
@@ -143,7 +157,6 @@ class GradioUI:
                 image_input = gr.Image(
                     type="filepath",
                     label="Uploaded Image",
-                    height="60vh",
                     scale=1
                 )
 
