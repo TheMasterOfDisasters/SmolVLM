@@ -1,59 +1,81 @@
+# inference.py
 import torch
-torch.set_default_device("cuda")  # 🔥 Forces all tensors to default to GPU
-
+import threading
+import queue
+import logging
 from transformers import AutoProcessor, AutoModelForImageTextToText
 from PIL import Image
 
-# Config
-MODEL_PATH = "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DTYPE = torch.bfloat16 if DEVICE == "cuda" else torch.float32
-LOCAL_IMAGE = "images/cat.jpg"
-PROMPT = "Can you describe this image?"
+class InferenceWorker:
+    def __init__(self, task_queue: queue.Queue, result_queue: queue.Queue,
+                 model_path="HuggingFaceTB/SmolVLM2-500M-Video-Instruct"):
+        self.task_queue = task_queue
+        self.result_queue = result_queue
+        self.model_path = model_path
 
-print(f"[SmolVLM] Loading model: {MODEL_PATH} on {DEVICE} ...")
-processor = AutoProcessor.from_pretrained(MODEL_PATH)
-model = AutoModelForImageTextToText.from_pretrained(
-    MODEL_PATH,
-    torch_dtype=DTYPE,
-    _attn_implementation="eager",
-).to(DEVICE)
-print(f"[SmolVLM] Model loaded ✅ on {DEVICE}")
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.dtype = torch.bfloat16 if self.device == "cuda" else torch.float32
 
-def analyze_image(image_path: str, prompt: str):
-    # Load local image
-    image = Image.open(image_path).convert("RGB")
+        logging.info(f"[SmolVLM] Loading model: {self.model_path} on {self.device} ...")
+        self.processor = AutoProcessor.from_pretrained(self.model_path)
+        self.model = AutoModelForImageTextToText.from_pretrained(
+            self.model_path,
+            torch_dtype=self.dtype,
+            _attn_implementation="eager",
+        ).to(self.device)
+        logging.info(f"[SmolVLM] Model loaded ✅ on {self.device}")
 
-    # Create chat message
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "image", "image": image},
-                {"type": "text", "text": prompt},
-            ]
-        },
-    ]
-    print(f"[SmolVLM] Message created ✅ on {DEVICE}")
+    def analyze_image(self, image_path: str, prompt: str) -> str:
+        torch.set_default_device("cuda")
+        image = Image.open(image_path).convert("RGB")
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": image},
+                    {"type": "text", "text": prompt},
+                ]
+            },
+        ]
+        logging.info(f"[SmolVLM] Message created ✅ on {self.device}")
 
-    # Preprocess
-    inputs = processor.apply_chat_template(
-        messages,
-        add_generation_prompt=True,
-        tokenize=True,
-        return_dict=True,
-        return_tensors="pt",
-    ).to(model.device, dtype=DTYPE)
-    print(f"[SmolVLM] Apply chat ✅ on {DEVICE}")
+        inputs = self.processor.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            tokenize=True,
+            return_dict=True,
+            return_tensors="pt",
+        ).to(self.model.device, dtype=self.dtype)
+        logging.info(f"[SmolVLM] Apply chat ✅ on {self.device}")
 
-    # Generate
-    generated_ids = model.generate(**inputs, do_sample=False, max_new_tokens=128)
-    print(f"[SmolVLM] generate ✅ on {DEVICE}")
+        generated_ids = self.model.generate(**inputs, do_sample=False, max_new_tokens=128)
+        logging.info(f"[SmolVLM] generate ✅ on {self.device}")
 
-    # Decode
-    generated_texts = processor.batch_decode(generated_ids, skip_special_tokens=True)
-    return generated_texts[0]
+        generated_texts = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
+        cleaned = generated_texts[0].strip()
+        if "Assistant:" in cleaned:
+            cleaned = cleaned.split("Assistant:", 1)[1].strip()
+        return cleaned
 
-if __name__ == "__main__":
-    result = analyze_image(LOCAL_IMAGE, PROMPT)
-    print("\n[Result]:", result)
+    def start(self):
+        # Warmup before starting thread
+        logging.info("[InferenceWorker] Running warmup...")
+        result_text = self.analyze_image("images/cat.jpg", "Warmup run")
+        logging.info(f"[InferenceWorker] ✅ Warmup complete with result : {result_text}")
+        threading.Thread(target=self._worker_loop, daemon=True).start()
+
+    def _worker_loop(self):
+        logging.info("[InferenceWorker] Started and waiting for tasks...")
+        while True:
+            try:
+                task = self.task_queue.get(timeout=0.5)
+            except queue.Empty:
+                continue
+            try:
+                logging.info(f"[InferenceWorker] Processing: {task}")
+                result_text = self.analyze_image(task["image_path"], task["prompt"])
+                self.result_queue.put({"id": task["id"], "result": result_text})
+            except Exception as e:
+                self.result_queue.put({"id": task["id"], "error": str(e)})
+            finally:
+                self.task_queue.task_done()
