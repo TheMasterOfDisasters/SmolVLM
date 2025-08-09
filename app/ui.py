@@ -37,17 +37,47 @@ class GradioUI:
         return self.chat_history
 
     def start(self):
-        with gr.Blocks(theme=gr.themes.Soft(primary_hue="cyan", secondary_hue="pink"), css=".gradio-container {background-color: #0d1117 !important;}") as demo:
+        with gr.Blocks(
+                theme=gr.themes.Soft(primary_hue="cyan", secondary_hue="pink"),
+                css="""
+                .gr-chatbot .wrap.svelte-1jphygv.user {
+                    justify-content: flex-end !important;
+                    text-align: right !important;
+                }
+                .gr-chatbot .wrap.svelte-1jphygv.assistant {
+                    justify-content: flex-start !important;
+                    text-align: left !important;
+                }
+                """
+        ) as demo:
+
             gr.Markdown("<h1 style='color:white; text-align:center;'>💬 SmolVLM Chat</h1>")
 
-            chatbot = gr.Chatbot(value=self.chat_history, elem_id="chatbot", height=500)
+            # Top row: Chat on left, Image on right
             with gr.Row():
-                image_input = gr.Image(type="filepath", label="Upload an image", height=200)
-                text_input = gr.Textbox(label="Prompt", placeholder="Ask me anything about the image...")
+                chatbot = gr.Chatbot(
+                    value=self.chat_history,
+                    elem_id="chatbot",
+                    height=500,
+                    scale=1
+                )
+                image_input = gr.Image(
+                    type="filepath",
+                    label="Uploaded Image",
+                    height=500,
+                    scale=1
+                )
 
-            submit_btn = gr.Button("Send", variant="primary")
+            # Bottom row: Text input full width
+            with gr.Row():
+                text_input = gr.Textbox(
+                    placeholder="Type your message and press Enter...",
+                    show_label=False,
+                    lines=1
+                )
 
-            submit_btn.click(
+            # Bind Enter to send
+            text_input.submit(
                 fn=self.process_input,
                 inputs=[image_input, text_input],
                 outputs=[chatbot]
