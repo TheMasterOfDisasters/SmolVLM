@@ -75,11 +75,11 @@ class GradioUI:
                     display: inline-block;
                     flex: 0 1 auto;
                     max-width: min(75%, 1000px);
-                    min-width: 6ch;
-                    padding: 6px 10px;
+                    min-width: 30ch;
+                    padding: 2px 4px;
                     border-radius: 14px;
                     margin: 4px 0;
-                    line-height: 1.35;
+                    line-height: 0.35;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.08);
                     white-space: pre-wrap;
                     word-break: normal;
