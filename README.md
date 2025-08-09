@@ -12,7 +12,7 @@ I need eyes
     pip install transformers
     pip install num2words
     pip install accelerate
-    pip install nicegui
+    pip install gradio
 
 
 

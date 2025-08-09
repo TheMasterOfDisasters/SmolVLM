@@ -1,4 +1,5 @@
-import queue, time, logging
+import queue, logging
+from ui import GradioUI
 from inference import InferenceWorker
 
 if __name__ == "__main__":
@@ -9,3 +10,7 @@ if __name__ == "__main__":
 
     worker = InferenceWorker(task_queue, result_queue)
     worker.start()
+
+    # Start UI (blocks here until shutdown)
+    ui_app = GradioUI(task_queue, result_queue)
+    ui_app.start()

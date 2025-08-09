@@ -1,73 +1,57 @@
-import logging
+import gradio as gr
+import queue
 import threading
-import time
-import tempfile
-import shutil
-from nicegui import ui
 
-class SmolVLM_UI:
-    def __init__(self, task_queue, result_queue):
+class GradioUI:
+    def __init__(self, task_queue: queue.Queue, result_queue: queue.Queue):
         self.task_queue = task_queue
         self.result_queue = result_queue
-        self._stop_event = threading.Event()
+        self.task_id_counter = 0
+        self.chat_history = []
 
-        # Store uploaded image path
-        self.uploaded_file_path = {"path": None}
+    def process_input(self, image, prompt):
+        """Send task to inference worker and wait for result."""
+        if not image or not prompt:
+            return self.chat_history
 
-        # UI elements
-        self.chat_container = ui.column().style('max-height: 500px; overflow-y: auto;')
-        self.prompt_input = ui.input("Enter prompt", value="Describe image")
-        ui.upload(on_upload=self.handle_upload, label="Upload Image")
-        ui.button("Run Inference", on_click=self.send_task)
+        self.task_id_counter += 1
+        task_id = self.task_id_counter
+        self.task_queue.put({"id": task_id, "image_path": image, "prompt": prompt})
 
-    def handle_upload(self, e):
-        """Save uploaded file to temp dir and store path."""
-        temp_dir = tempfile.gettempdir()
-        file_path = f"{temp_dir}/{e.name}"
-        with open(file_path, "wb") as f:
-            shutil.copyfileobj(e.content, f)
-        self.uploaded_file_path["path"] = file_path
-        logging.info(f"[UI] Uploaded: {file_path}")
-        ui.notify(f"Uploaded: {e.name}")
-
-    def send_task(self):
-        """Send a task to the inference worker."""
-        if not self.uploaded_file_path["path"]:
-            ui.notify("❌ No image uploaded", color="negative")
-            return
-        task = {
-            "id": time.time(),
-            "image_path": self.uploaded_file_path["path"],
-            "prompt": self.prompt_input.value
-        }
-        self.task_queue.put(task)
-        self.add_chat_message("🧑‍💻 You", self.prompt_input.value)
-        self.add_chat_message("🤖 Assistant", "⏳ Processing...")
-
-    def add_chat_message(self, sender, message):
-        """Append message to chat container."""
-        with self.chat_container:
-            ui.markdown(f"**{sender}:** {message}")
-
-    def _result_listener(self):
-        """Background listener for inference results."""
-        while not self._stop_event.is_set():
+        # Wait for result (simple blocking wait, can be async later)
+        while True:
             try:
                 result = self.result_queue.get(timeout=0.1)
-            except:
+            except queue.Empty:
                 continue
 
-            # Remove last "Processing..." and replace with actual result
-            if "error" in result:
-                self.add_chat_message("🤖 Assistant", f"❌ {result['error']}")
-            else:
-                self.add_chat_message("🤖 Assistant", result["result"])
-            self.result_queue.task_done()
+            if result["id"] == task_id:
+                if "error" in result:
+                    self.chat_history.append(("You", prompt))
+                    self.chat_history.append(("Assistant", f"❌ Error: {result['error']}"))
+                else:
+                    self.chat_history.append(("You", prompt))
+                    self.chat_history.append(("Assistant", result["result"]))
+                break
+
+        return self.chat_history
 
     def start(self):
-        logging.info("[UI] Starting NiceGUI server...")
-        threading.Thread(target=self._result_listener, daemon=True).start()
-        ui.run(reload=False)
+        with gr.Blocks(theme=gr.themes.Soft(primary_hue="cyan", secondary_hue="pink"), css=".gradio-container {background-color: #0d1117 !important;}") as demo:
+            gr.Markdown("<h1 style='color:white; text-align:center;'>💬 SmolVLM Chat</h1>")
 
-    def stop(self):
-        self._stop_event.set()
+            chatbot = gr.Chatbot(value=self.chat_history, elem_id="chatbot", height=500)
+            with gr.Row():
+                image_input = gr.Image(type="filepath", label="Upload an image", height=200)
+                text_input = gr.Textbox(label="Prompt", placeholder="Ask me anything about the image...")
+
+            submit_btn = gr.Button("Send", variant="primary")
+
+            submit_btn.click(
+                fn=self.process_input,
+                inputs=[image_input, text_input],
+                outputs=[chatbot]
+            )
+
+        demo.queue().launch(server_name="0.0.0.0", server_port=8080)
+
