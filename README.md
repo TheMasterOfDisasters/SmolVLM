@@ -8,10 +8,25 @@ I need eyes
     conda create -n SmolVLM python=3.10 -y  
     conda activate SmolVLM  
 
+    pip install torch==2.8.0+cu128 torchvision==0.23.0+cu128 torchaudio==2.8.0+cu128 --index-url https://download.pytorch.org/whl/cu128
+    pip install transformers
+    pip install num2words
+    pip install accelerate
+
+
+
+
+    -------------------------
+
     pip install flash_attn-2.7.0.post2-cp310-cp310-win_amd64.whl
 
     pip install torchvision==0.23.0+cu128 torchaudio==2.8.0+cu128 --index-url https://download.pytorch.org/whl/cu128
     pip install flash-attn --no-build-isolation
+
+    
+    pip install accelerate
+    pip install bitsandbytes
+    
 
   
     winget install --id=Task.Task -e  
@@ -35,10 +50,7 @@ I need eyes
 
     pip install transformers pillow nicegui fastapi uvicorn
     
-    pip install num2words
-    pip install accelerate
-    pip install bitsandbytes
-    
+
 
 
     Check versions
