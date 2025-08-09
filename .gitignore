@@ -209,3 +209,7 @@ __marimo__/
 # Idea
 .idea/
 .idea/*
+
+# Images
+app/images/
+app/images/*
