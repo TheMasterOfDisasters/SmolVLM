@@ -1,16 +1,51 @@
-import queue, logging
+import logging, queue
+from fastapi import FastAPI
+import uvicorn
 from ui import GradioUI
 from inference import InferenceWorker
+from api_handler import ApiHandler
+from result_broker import ResultBroker
+import gradio as gr
+from gradio.routes import mount_gradio_app
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
+    # Shared task queue -> consumed by InferenceWorker
     task_queue = queue.Queue()
-    result_queue = queue.Queue()
 
-    worker = InferenceWorker(task_queue, result_queue)
+    # ResultBroker sits between the worker and any consumers (UI/API)
+    broker = ResultBroker()
+
+    # Start the single inference worker (GPU/CPU bound)
+    worker = InferenceWorker(task_queue, broker.incoming)
     worker.start()
 
-    # Start UI (blocks here until shutdown)
-    ui_app = GradioUI(task_queue, result_queue)
-    ui_app.start()
+    # Build Gradio UI (do not launch server)
+    ui_app = GradioUI(task_queue, broker)
+    demo = ui_app.build().queue()
+
+    # FastAPI root app
+    from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
+app = FastAPI(title="App + UI + API")
+from fastapi.responses import RedirectResponse
+
+@app.get("/")
+async def root_redirect():
+    return RedirectResponse(url="/ui")
+
+
+@app.get("/health", response_class=PlainTextResponse)
+async def health():
+    return "ok"
+
+# Mount Gradio at root ("/")
+mount_gradio_app(app, demo, path="/ui")
+
+# Mount API under /ptt
+api = ApiHandler(task_queue, broker)
+app.mount("/ptt", api.app)
+
+# Run a single server for both UI and API on the same port
+uvicorn.run(app, host="0.0.0.0", port=8080)

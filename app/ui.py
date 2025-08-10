@@ -2,10 +2,12 @@ import gradio as gr
 import queue
 import threading
 
+from result_broker import ResultBroker
+
 class GradioUI:
-    def __init__(self, task_queue: queue.Queue, result_queue: queue.Queue):
+    def __init__(self, task_queue: queue.Queue, result_broker: ResultBroker):
         self.task_queue = task_queue
-        self.result_queue = result_queue
+        self.result_broker = result_broker
         self.task_id_counter = 0
         self.chat_history = []
 
@@ -34,21 +36,22 @@ class GradioUI:
         yield self.chat_history, gr.update()
 
         while True:
+            # Wait for only our result via the broker
+            waiter = self.result_broker.register(task_id)
             try:
-                result = self.result_queue.get(timeout=0.1)
+                result = waiter.get(timeout=120)
             except queue.Empty:
-                continue
-
-            if result["id"] == task_id:
-                if "error" in result:
-                    self.chat_history[placeholder_index]["content"] = f"❌ Error: {result['error']}"
-                else:
-                    self.chat_history[placeholder_index]["content"] = result["result"]
+                self.chat_history[placeholder_index]["content"] = "⌛ Timed out waiting for result."
                 break
+            if "error" in result:
+                self.chat_history[placeholder_index]["content"] = f"❌ Error: {result['error']}"
+            else:
+                self.chat_history[placeholder_index]["content"] = result["result"]
+            break
 
         yield self.chat_history, gr.update()
 
-    def start(self):
+    def build(self):
         with gr.Blocks(
                 theme=gr.themes.Soft(primary_hue="cyan", secondary_hue="pink", font=[gr.themes.GoogleFont("Roboto"), gr.themes.GoogleFont("Roboto Mono")]),
                 css="""
@@ -173,4 +176,4 @@ class GradioUI:
                 outputs=[chatbot, text_input]
             )
 
-        demo.queue().launch(server_name="0.0.0.0", server_port=8080)
+        return demo
