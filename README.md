@@ -1,6 +1,6 @@
 # SmolVLM — Easy-to-Run Vision-Language Model 🖼️💬
 
-This project packages [SmolVLM2](https://huggingface.co/HuggingFaceTB/SmolVLM2-500M-Video-Instruct) into a **ready-to-use Docker image** with both a **web UI** and an **HTTP API** for image–text-to-text tasks.
+This [project](https://github.com/TheMasterOfDisasters/SmolVLM) packages [SmolVLM2](https://huggingface.co/HuggingFaceTB/SmolVLM2-500M-Video-Instruct) into a **ready-to-use Docker image** with both a **web UI** and an **HTTP API** for image–text-to-text tasks.
 
 It’s designed for **fast setup** and **offline-friendly deployment** so you can:
 - Pull the container
@@ -10,7 +10,8 @@ It’s designed for **fast setup** and **offline-friendly deployment** so you ca
 ⚠️ **Note:** Maintained by an independent developer for ease-of-use.  
 Not production-hardened — you may need extra work for critical deployments.
 
-✅ **Offline Mode:** Supported — models can be pre-baked into the image or mounted from local storage.
+✅ **Offline Mode:** Supported — models can be pre-baked into the image or mounted from local storage.  
+✅ **Minimal GPU Requirements:** Works on most modern NVIDIA GPUs with **at least 4GB VRAM** and CUDA support (Ampere or newer recommended). Lower VRAM cards may require using the 256M model variant.
 
 🤝 **Contributions Welcome:** Bug fixes, feature requests, and PRs are appreciated.
 
