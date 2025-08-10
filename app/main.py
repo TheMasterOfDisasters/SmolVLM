@@ -7,6 +7,9 @@ from api_handler import ApiHandler
 from result_broker import ResultBroker
 import gradio as gr
 from gradio.routes import mount_gradio_app
+from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
+from fastapi.responses import RedirectResponse
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -26,15 +29,12 @@ if __name__ == "__main__":
     demo = ui_app.build().queue()
 
     # FastAPI root app
-    from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
+
 app = FastAPI(title="App + UI + API")
-from fastapi.responses import RedirectResponse
 
 @app.get("/")
 async def root_redirect():
     return RedirectResponse(url="/ui")
-
 
 @app.get("/health", response_class=PlainTextResponse)
 async def health():
