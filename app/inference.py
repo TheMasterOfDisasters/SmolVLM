@@ -22,7 +22,9 @@ class InferenceWorker:
         self.model = AutoModelForImageTextToText.from_pretrained(
             self.model_path,
             torch_dtype=self.dtype,
-            _attn_implementation="eager",
+            _attn_implementation="sdpa"
+            #_attn_implementation="eager",
+            #_attn_implementation="flash_attention_2",
         ).to(self.device)
         logging.info(f"[SmolVLM] Model loaded ✅ on {self.device}")
 

@@ -1,8 +1,34 @@
+# Development Notes
+
+## Version Management
+`git tag v0.0.2`  
+`git push origin v0.0.2`
+
+## Docker Usage
+
+### GPU Version
+`docker run --gpus all -p 8888:8888 sensejworld/smolvlm`
+
+
+
+## Test locally
+
+### Build image
+You need docker to be working. (Example : Docker Desktop)  
+`docker build -t smolvlm:test .`
+
+### Docker Run
+`docker run --gpus all -p 8888:8888 smolvlm:test`
+
+### Connect to image without run
+`docker run --rm -it --entrypoint /bin/bash smolvlm:test`
+
 
 ## Conda setup
 
     conda remove -n SmolVLM --all -y
     conda create -n SmolVLM python=3.10 -y
+
     conda activate SmolVLM
 
     pip install torch==2.8.0+cu128 torchvision==0.23.0+cu128 torchaudio==2.8.0+cu128 --index-url https://download.pytorch.org/whl/cu128

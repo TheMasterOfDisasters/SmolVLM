@@ -56,9 +56,9 @@ starlette==0.47.2
 sympy==1.13.3
 tokenizers==0.21.4
 tomlkit==0.13.3
-torch==2.8.0+cu128
-torchaudio==2.8.0+cu128
-torchvision==0.23.0+cu128
+torch==2.8.0
+torchaudio==2.8.0
+torchvision==0.23.0
 tqdm==4.67.1
 transformers==4.55.0
 typer==0.16.0
