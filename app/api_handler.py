@@ -27,22 +27,23 @@ class ApiHandler:
             if not query:
                 raise HTTPException(status_code=400, detail="Query is required.")
 
-            # If image not provided, use demo
+            # Branch: no image provided -> use demo file directly
             if image is None:
                 fpath = config.DEMO_IMAGE
+                if not os.path.exists(fpath):
+                    raise HTTPException(status_code=500, detail=f"Demo image not found at {fpath}")
             else:
                 # Persist the uploaded image to disk (worker expects a path)
                 suffix = os.path.splitext(image.filename or "")[1] or ".png"
                 fname = f"{uuid.uuid4().hex}{suffix}"
                 fpath = os.path.join(self.storage_dir, fname)
-
-            try:
-                data = await image.read()
-                with open(fpath, "wb") as f:
-                    f.write(data)
-            except Exception as e:
-                logging.exception("Failed to store uploaded file")
-                raise HTTPException(status_code=500, detail=f"Failed to store file: {e}")
+                try:
+                    data = await image.read()
+                    with open(fpath, "wb") as f:
+                        f.write(data)
+                except Exception as e:
+                    logging.exception("Failed to store uploaded file")
+                    raise HTTPException(status_code=500, detail=f"Failed to store file: {e}")
 
             # Enqueue task and wait for result via ResultBroker
             task_id = uuid.uuid4().int & ((1<<31)-1)  # fits in 32-bit signed
@@ -66,6 +67,3 @@ class ApiHandler:
                 return JSONResponse(status_code=500, content={"id": task_id, "error": result["error"]})
 
             return {"id": task_id, "result": result.get("result", "")}
-
-
-

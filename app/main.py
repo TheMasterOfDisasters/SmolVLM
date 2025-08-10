@@ -1,12 +1,10 @@
 import logging, queue
-from fastapi import FastAPI
 import uvicorn
 import config
 from ui import GradioUI
 from inference import InferenceWorker
 from api_handler import ApiHandler
 from result_broker import ResultBroker
-import gradio as gr
 from gradio.routes import mount_gradio_app
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
