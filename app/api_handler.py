@@ -5,6 +5,7 @@ import logging
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
+import config
 
 class ApiHandler:
     """
@@ -22,14 +23,18 @@ class ApiHandler:
         self.app = app
 
         @app.post("/convert")
-        async def convert(image: UploadFile = File(...), query: str = Form(...)):
-            if not query or not image:
-                raise HTTPException(status_code=400, detail="Both image and query are required.")
+        async def convert(image: UploadFile = File(None), query: str = Form(...)):
+            if not query:
+                raise HTTPException(status_code=400, detail="Query is required.")
 
-            # Persist the uploaded image to disk (worker expects a path)
-            suffix = os.path.splitext(image.filename or "")[1] or ".png"
-            fname = f"{uuid.uuid4().hex}{suffix}"
-            fpath = os.path.join(self.storage_dir, fname)
+            # If image not provided, use demo
+            if image is None:
+                fpath = config.DEMO_IMAGE
+            else:
+                # Persist the uploaded image to disk (worker expects a path)
+                suffix = os.path.splitext(image.filename or "")[1] or ".png"
+                fname = f"{uuid.uuid4().hex}{suffix}"
+                fpath = os.path.join(self.storage_dir, fname)
 
             try:
                 data = await image.read()
@@ -61,3 +66,6 @@ class ApiHandler:
                 return JSONResponse(status_code=500, content={"id": task_id, "error": result["error"]})
 
             return {"id": task_id, "result": result.get("result", "")}
+
+
+

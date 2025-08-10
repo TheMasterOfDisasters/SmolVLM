@@ -3,6 +3,7 @@ import queue
 import threading
 
 from result_broker import ResultBroker
+import config
 
 class GradioUI:
     def __init__(self, task_queue: queue.Queue, result_broker: ResultBroker):
@@ -147,7 +148,7 @@ class GradioUI:
             """
         ) as demo:
 
-            gr.Markdown("<h1 style='color:white; text-align:center; margin:0;'>💬 SmolVLM Chat</h1>")
+            gr.Markdown(f"<h1 style='color:white; text-align:center; margin:0;'>💬 SmolVLM Chat</h1>\n<p style='text-align:center; margin-top:6px;'>Model: <code>{config.MODEL_ID}</code></p>")
 
             with gr.Row(elem_id="main-row"):
                 chatbot = gr.Chatbot(

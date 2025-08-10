@@ -5,10 +5,11 @@ import queue
 import logging
 from transformers import AutoProcessor, AutoModelForImageTextToText
 from PIL import Image
+import config
 
 class InferenceWorker:
     def __init__(self, task_queue: queue.Queue, result_queue: queue.Queue,
-                 model_path="HuggingFaceTB/SmolVLM2-500M-Video-Instruct"):
+                 model_path=config.MODEL_ID):
         self.task_queue = task_queue
         self.result_queue = result_queue
         self.model_path = model_path
@@ -60,7 +61,7 @@ class InferenceWorker:
     def start(self):
         # Warmup before starting thread
         logging.info("[InferenceWorker] Running warmup...")
-        result_text = self.analyze_image("images/cat.jpg", "Warmup run")
+        result_text = self.analyze_image(config.DEMO_IMAGE, "Warmup run")
         logging.info(f"[InferenceWorker] ✅ Warmup complete with result : {result_text}")
         threading.Thread(target=self._worker_loop, daemon=True).start()
 
