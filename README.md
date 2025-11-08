@@ -26,8 +26,13 @@ If you encounter problems or have suggestions:
 
 ## 🚀 Quick Start
 
+### Standard run
 ```bash
 docker run --gpus all -p 8888:8888 sensejworld/smolvlm:latest
+```
+### MultiGPU setup
+```bash
+docker run --gpus all -e CUDA_VISIBLE_DEVICES=1 -p 8888:8888 sensejworld/smolvlm:latest
 ```
 
 Then open: **[http://localhost:8888/ui](http://localhost:8888/ui)**
